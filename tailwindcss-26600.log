@@ -1,0 +1,110 @@
+2025-11-26T15:11:28.422462Z  INFO tailwindcss_oxide::scanner: Provided sources:
+2025-11-26T15:11:28.422628Z  INFO tailwindcss_oxide::scanner: Source: PublicSourceEntry { base: "G:\\GitHub\\image-compressor", pattern: "**/*", negated: false }
+2025-11-26T15:11:28.422884Z  INFO tailwindcss_oxide::scanner: Optimized sources:
+2025-11-26T15:11:28.422938Z  INFO tailwindcss_oxide::scanner: Source: Auto { base: "G:\\GitHub\\image-compressor" }
+2025-11-26T15:11:28.425211Z  INFO scan_sources: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.427151Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app"
+2025-11-26T15:11:28.427400Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app\\globals.css"
+2025-11-26T15:11:28.449747Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app\\layout.tsx"
+2025-11-26T15:11:28.449837Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app\\page.tsx"
+2025-11-26T15:11:28.449962Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\eslint.config.mjs"
+2025-11-26T15:11:28.450055Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\next.config.ts"
+2025-11-26T15:11:28.450345Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\package.json"
+2025-11-26T15:11:28.450430Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\postcss.config.mjs"
+2025-11-26T15:11:28.450553Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public"
+2025-11-26T15:11:28.450719Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public\\file.svg"
+2025-11-26T15:11:28.450830Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public\\globe.svg"
+2025-11-26T15:11:28.450934Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public\\next.svg"
+2025-11-26T15:11:28.451018Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public\\vercel.svg"
+2025-11-26T15:11:28.451085Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public\\window.svg"
+2025-11-26T15:11:28.451185Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\README.md"
+2025-11-26T15:11:28.451264Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\tsconfig.json"
+2025-11-26T15:11:28.451392Z  INFO scan_sources: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.451406Z  INFO extract_candidates: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.451415Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.451418Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 13 file(s)
+2025-11-26T15:11:28.452164Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\public\\vercel.svg"
+2025-11-26T15:11:28.452172Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\package.json"
+2025-11-26T15:11:28.452181Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\next.config.ts"
+2025-11-26T15:11:28.452181Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\public\\file.svg"
+2025-11-26T15:11:28.452169Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\app\\layout.tsx"
+2025-11-26T15:11:28.452335Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\public\\window.svg"
+2025-11-26T15:11:28.452340Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\app\\page.tsx"
+2025-11-26T15:11:28.452355Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\eslint.config.mjs"
+2025-11-26T15:11:28.452339Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\tsconfig.json"
+2025-11-26T15:11:28.452337Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\postcss.config.mjs"
+2025-11-26T15:11:28.483412Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\public\\globe.svg"
+2025-11-26T15:11:28.483412Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\public\\next.svg"
+2025-11-26T15:11:28.485334Z  INFO tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\README.md"
+2025-11-26T15:11:28.485429Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.485447Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.485452Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.485991Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.486012Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.486017Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.486021Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 1 file(s)
+2025-11-26T15:11:28.486150Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\app\\globals.css"
+2025-11-26T15:11:28.486159Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.486169Z  INFO extract_candidates:extract_css_variables: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.486173Z  INFO extract_candidates:extract_css_variables:extract: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.486379Z  INFO extract_candidates:extract_css_variables:extract: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.486395Z  INFO extract_candidates:extract_css_variables: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.486690Z  INFO extract_candidates: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.487075Z  INFO get_files: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.487086Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.488829Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app"
+2025-11-26T15:11:28.489540Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public"
+2025-11-26T15:11:28.490119Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.490245Z  INFO get_files: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.490360Z  INFO get_globs: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.490369Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: enter
+2025-11-26T15:11:28.491481Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app"
+2025-11-26T15:11:28.492195Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public"
+2025-11-26T15:11:28.492586Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: exit
+2025-11-26T15:11:28.494787Z  INFO get_globs: tailwindcss_oxide::scanner: exit
+2025-11-26T15:15:07.765186Z  INFO scan_sources: tailwindcss_oxide::scanner: enter
+2025-11-26T15:15:07.766440Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app"
+2025-11-26T15:15:07.766653Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app\\page.tsx"
+2025-11-26T15:15:07.767176Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public"
+2025-11-26T15:15:07.767586Z  INFO scan_sources: tailwindcss_oxide::scanner: exit
+2025-11-26T15:15:07.767596Z  INFO extract_candidates: tailwindcss_oxide::scanner: enter
+2025-11-26T15:15:07.767601Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2025-11-26T15:15:07.767604Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 1 file(s)
+2025-11-26T15:15:07.838998Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\app\\page.tsx"
+2025-11-26T15:15:07.839028Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2025-11-26T15:15:07.839037Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: enter
+2025-11-26T15:15:07.839041Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: enter
+2025-11-26T15:15:07.839237Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: exit
+2025-11-26T15:15:07.839247Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: exit
+2025-11-26T15:15:07.839584Z  INFO extract_candidates: tailwindcss_oxide::scanner: exit
+2025-11-26T15:15:07.839775Z  INFO get_files: tailwindcss_oxide::scanner: enter
+2025-11-26T15:15:07.839784Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: enter
+2025-11-26T15:15:07.841024Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app"
+2025-11-26T15:15:07.841602Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public"
+2025-11-26T15:15:07.842043Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: exit
+2025-11-26T15:15:07.842136Z  INFO get_files: tailwindcss_oxide::scanner: exit
+2025-11-26T15:15:07.842209Z  INFO get_globs: tailwindcss_oxide::scanner: enter
+2025-11-26T15:15:07.842216Z  INFO get_globs: tailwindcss_oxide::scanner: exit
+2025-11-26T15:18:38.764591Z  INFO scan_sources: tailwindcss_oxide::scanner: enter
+2025-11-26T15:18:38.766069Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app"
+2025-11-26T15:18:38.766286Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app\\page.tsx"
+2025-11-26T15:18:38.766693Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public"
+2025-11-26T15:18:38.767105Z  INFO scan_sources: tailwindcss_oxide::scanner: exit
+2025-11-26T15:18:38.767115Z  INFO extract_candidates: tailwindcss_oxide::scanner: enter
+2025-11-26T15:18:38.767120Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2025-11-26T15:18:38.767123Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 1 file(s)
+2025-11-26T15:18:38.767198Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading "G:\\GitHub\\image-compressor\\app\\page.tsx"
+2025-11-26T15:18:38.767209Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2025-11-26T15:18:38.767214Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: enter
+2025-11-26T15:18:38.767217Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: enter
+2025-11-26T15:18:38.767461Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: exit
+2025-11-26T15:18:38.767475Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: exit
+2025-11-26T15:18:38.767730Z  INFO extract_candidates: tailwindcss_oxide::scanner: exit
+2025-11-26T15:18:38.767899Z  INFO get_files: tailwindcss_oxide::scanner: enter
+2025-11-26T15:18:38.767907Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: enter
+2025-11-26T15:18:38.768985Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\app"
+2025-11-26T15:18:38.769577Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "G:\\GitHub\\image-compressor\\public"
+2025-11-26T15:18:38.769928Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: exit
+2025-11-26T15:18:38.770001Z  INFO get_files: tailwindcss_oxide::scanner: exit
+2025-11-26T15:18:38.770066Z  INFO get_globs: tailwindcss_oxide::scanner: enter
+2025-11-26T15:18:38.770073Z  INFO get_globs: tailwindcss_oxide::scanner: exit
