@@ -1,293 +1,538 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { FaUpload, FaDownload, FaCompressAlt, FaChartLine, FaImage, FaRegImages } from "react-icons/fa";
+import { useState, useRef, useCallback, useMemo, ChangeEvent, DragEvent } from "react";
+import { 
+  FaUpload, FaDownload, FaCompressAlt, FaChartLine, FaImage, 
+  FaRegImages, FaSpinner, FaInfoCircle, FaTrash, FaFileDownload, FaEye
+} from "react-icons/fa";
 
-export default function ImageCompressor() {
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [compressedSrc, setCompressedSrc] = useState<string | null>(null);
+// =============================================================================
+// TYPES & HELPERS
+// =============================================================================
+
+// Estado individual de la imagen en el array
+type ImageCompressionState = {
+  id: string; // ID único para las claves de React
+  file: File; // Referencia al objeto File original
+  originalSize: number; // Size in KB
+  originalSrc: string; // Data URL del original
+  compressedSrc: string | null; // Data URL del comprimido
+  compressedSize: number; // Size in KB
+  isCompressing: boolean;
+  error: string | null;
+};
+
+/**
+ * Calcula un tamaño de archivo más preciso desde la Data URL (KB)
+ */
+const getFileSizeFromDataURL = (dataurl: string): number => {
+  try {
+    const base64 = dataurl.split(',')[1];
+    if (!base64) return 0;
+    const binary = atob(base64);
+    return Number((binary.length / 1024).toFixed(2));
+  } catch (error) {
+    return 0;
+  }
+};
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
+export default function MultiImageCompressor() {
+  const [images, setImages] = useState<ImageCompressionState[]>([]);
   const [quality, setQuality] = useState(70);
-  const [originalSize, setOriginalSize] = useState(0);
-  const [compressedSize, setCompressedSize] = useState(0);
-  const [isCompressing, setIsCompressing] = useState(false);
+  const [isProcessingAll, setIsProcessingAll] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = async (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const MAX_TOTAL_SIZE_MB = 50;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
+  // Obtenemos la primera imagen para usarla en la vista previa
+  const previewImage = images[0];
 
-    setOriginalSize(Number((file.size / 1024).toFixed(2)));
-    setIsCompressing(true);
+  // ---------------------------------------------------------------------------
+  // LÓGICA DE COMPRESIÓN INDIVIDUAL
+  // ---------------------------------------------------------------------------
+  
+  const compressImage = useCallback((imgId: string, src: string, qualityPercent: number) => {
+    
+    setImages(prev => prev.map(img => img.id === imgId ? { ...img, isCompressing: true, error: null } : img));
 
-    const reader = new FileReader();
-    reader.onload = (event: any) => {
-      setImageSrc(event.target.result);
-      compressImage(event.target.result, quality);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const compressImage = (src: string, qualityPercent: number) => {
     const img = new Image();
     img.src = src;
 
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        setImages(prev => prev.map(img => img.id === imgId ? { ...img, isCompressing: false, error: "Canvas error." } : img));
+        return;
+      }
 
       canvas.width = img.width;
       canvas.height = img.height;
-
       ctx.drawImage(img, 0, 0, img.width, img.height);
 
-      const compressed = canvas.toDataURL("image/jpeg", qualityPercent / 100);
-      setCompressedSrc(compressed);
+      const compressedDataURL = canvas.toDataURL("image/jpeg", qualityPercent / 100);
+      const fileSize = getFileSizeFromDataURL(compressedDataURL); 
 
-      const fileSize = Math.round((compressed.length * 3) / 4 / 1024);
-      setCompressedSize(fileSize);
-      setIsCompressing(false);
+      setImages(prev => prev.map(img => 
+        img.id === imgId ? { 
+          ...img, 
+          compressedSrc: compressedDataURL, 
+          compressedSize: fileSize,
+          isCompressing: false 
+        } : img
+      ));
     };
 
     img.onerror = () => {
-      setIsCompressing(false);
-      alert('Error loading image');
+      setImages(prev => prev.map(i => i.id === imgId ? { ...i, isCompressing: false, error: 'Image load failed.' } : i));
     };
-  };
+  }, []);
 
-  const compressionRatio = originalSize > 0 ? ((originalSize - compressedSize) / originalSize * 100).toFixed(1) : 0;
-  const savedSize = originalSize - compressedSize;
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (e.dataTransfer.files[0]) {
-      handleFile({ target: { files: e.dataTransfer.files } });
+  // ---------------------------------------------------------------------------
+  // MANEJO DE ARCHIVOS Y RECOMPRESIÓN
+  // ---------------------------------------------------------------------------
+
+  const handleFileProcessing = useCallback((fileList: FileList) => {
+    
+    const newImages: ImageCompressionState[] = [];
+    let totalSize = images.reduce((sum, img) => sum + img.originalSize, 0);
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const sizeInKB = Number((file.size / 1024).toFixed(2));
+      totalSize += sizeInKB;
+
+      if (!file.type.startsWith('image/')) {
+        alert(`File ${file.name} ignored: Not an image.`);
+        continue;
+      }
+
+      if (totalSize > MAX_TOTAL_SIZE_MB * 1024) {
+        alert(`File ${file.name} ignored: Total batch size exceeds ${MAX_TOTAL_SIZE_MB}MB.`);
+        break; 
+      }
+
+      const id = crypto.randomUUID();
+
+      newImages.push({
+        id,
+        file,
+        originalSize: sizeInKB,
+        originalSrc: '', // Se llenará después de FileReader
+        compressedSrc: null,
+        compressedSize: 0,
+        isCompressing: false, // Inicializar como falso hasta que se lea
+        error: null,
+      });
+
+      // Leer el archivo
+      const reader = new FileReader();
+      reader.onloadstart = () => {
+         setImages(prev => prev.map(img => img.id === id ? { ...img, isCompressing: true } : img));
+      };
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        const src = event.target?.result as string;
+        setImages(prev => prev.map(img => img.id === id ? { ...img, originalSrc: src, isCompressing: true } : img));
+        compressImage(id, src, quality);
+      };
+      reader.onerror = () => {
+        setImages(prev => prev.map(img => img.id === id ? { ...img, isCompressing: false, error: 'Read error.' } : img));
+      };
+      reader.readAsDataURL(file);
+    }
+
+    setImages(prev => [...prev, ...newImages]);
+  }, [images, quality, compressImage]);
+
+
+  const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      handleFileProcessing(e.target.files);
+      e.target.value = ''; 
     }
   };
 
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.files) {
+      handleFileProcessing(e.dataTransfer.files);
+    }
+  };
+
+  const handleQualityChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newQuality = Number(e.target.value);
+    setQuality(newQuality);
+    
+    // Recomprimir todas las imágenes cargadas al cambiar la calidad
+    if (images.length > 0) {
+      setIsProcessingAll(true);
+      
+      // La primera imagen se re-comprime inmediatamente para la vista previa en vivo
+      if (previewImage?.originalSrc) {
+        compressImage(previewImage.id, previewImage.originalSrc, newQuality);
+      }
+      
+      // El resto de imágenes se re-comprimen asíncronamente
+      images.slice(1).forEach(img => {
+        if (img.originalSrc) {
+          setTimeout(() => compressImage(img.id, img.originalSrc, newQuality), 50); 
+        }
+      });
+
+      setTimeout(() => setIsProcessingAll(false), 500); 
+    }
+  };
+  
+  const handleRemoveImage = (id: string) => {
+    setImages(prev => prev.filter(img => img.id !== id));
+  };
+  
+  // ---------------------------------------------------------------------------
+  // CÁLCULOS DERIVADOS (USEMEMO)
+  // ---------------------------------------------------------------------------
+
+  const globalStats = useMemo(() => {
+    const originalTotal = images.reduce((sum, img) => sum + img.originalSize, 0);
+    const compressedTotal = images.reduce((sum, img) => sum + img.compressedSize, 0);
+    const saved = originalTotal - compressedTotal;
+    const ratio = originalTotal > 0 ? (saved / originalTotal) * 100 : 0;
+    
+    // Todas las imágenes deben tener una fuente comprimida o un error para considerarse "terminadas"
+    const allCompressed = images.every(img => (img.compressedSrc || img.error) && !img.isCompressing);
+
+    return {
+      originalTotal: originalTotal.toFixed(1),
+      compressedTotal: compressedTotal.toFixed(1),
+      saved: saved > 0 ? saved.toFixed(1) : '0.0',
+      ratio: ratio > 0 ? ratio.toFixed(1) : '0.0',
+      allCompressed: allCompressed && images.length > 0,
+    };
+  }, [images]);
+
+
+  // ---------------------------------------------------------------------------
+  // LÓGICA DE DESCARGA POR LOTES (ZIP)
+  // ---------------------------------------------------------------------------
+
+  const handleBatchDownload = async () => {
+    if (!globalStats.allCompressed) {
+      alert("Please wait for all images to finish compressing.");
+      return;
+    }
+
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      images.forEach((img) => {
+        if (img.compressedSrc) {
+          const base64 = img.compressedSrc.split(',')[1];
+          const originalName = img.file.name.replace(/\.[^/.]+$/, ""); 
+          const fileName = `${originalName}_Q${quality}.jpg`; // Añadir calidad al nombre
+          zip.file(fileName, base64, { base64: true });
+        }
+      });
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `compressed_images_Q${quality}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert("Error creating ZIP file. Please check console.");
+      console.error(error);
+    }
+  };
+
+
+  // ---------------------------------------------------------------------------
+  // RENDERIZADO
+  // ---------------------------------------------------------------------------
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12 pt-8">
-          <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg mb-6">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Header (Mismo que antes) */}
+        <div className="text-center mb-10 pt-8">
+          <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-xl">
             <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-              <FaCompressAlt className="text-white text-2xl" />
+              <FaRegImages className="text-white text-2xl" />
             </div>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Image Compressor
-              </h1>
-              <p className="text-gray-600 text-sm mt-1">
-                Compress images without losing quality
-              </p>
-            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Batch Image Compressor
+            </h1>
           </div>
+          <p className="text-gray-600 text-md mt-3">
+            Load up to <b>{MAX_TOTAL_SIZE_MB}MB</b> of images to compress them all at once.
+          </p>
         </div>
-
-        {/* Main Card */}
+        
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mb-8 border border-white/20">
-          {/* Upload Zone */}
+          
+          {/* Upload Zone (Mismo que antes) */}
           <div
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
-            className="border-3 border-dashed border-gray-300 rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 hover:border-blue-400 hover:bg-blue-25 mb-8"
+            onDragEnter={(e) => e.currentTarget.classList.add('border-blue-500', 'bg-blue-50')}
+            onDragLeave={(e) => e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50')}
+            className="border-3 border-dashed border-gray-300 rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 hover:border-blue-400 hover:bg-blue-50 mb-8"
             onClick={() => fileInputRef.current?.click()}
           >
             <div className="flex flex-col items-center justify-center gap-4">
               <div className="p-4 bg-blue-100 rounded-2xl">
                 <FaUpload className="text-blue-500 text-3xl" />
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Drop your image here
-                </h3>
-                <p className="text-gray-600">or click to browse files</p>
-                <p className="text-gray-500 text-sm mt-2">
-                  Supports JPG, PNG, WebP, GIF
-                </p>
-              </div>
+              <h3 className="text-xl font-semibold text-gray-800">
+                Drag and Drop Multiple Images Here
+              </h3>
+              <p className="text-gray-600">or click to browse files</p>
             </div>
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
-              onChange={handleFile}
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              onChange={handleFileInputChange}
               className="hidden"
             />
           </div>
 
-          {/* Quality Controls */}
-          {imageSrc && (
-            <div className="bg-gray-50 rounded-2xl p-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <label className="font-semibold text-gray-800 text-lg flex items-center gap-2">
-                  <FaChartLine className="text-blue-500" />
-                  Compression Quality: {quality}%
-                </label>
-                <span className="text-sm text-gray-600">
-                  {quality >= 80 ? 'High' : quality >= 50 ? 'Medium' : 'Low'}
-                </span>
-              </div>
-              
-              <input
-                type="range"
-                min="1"
-                max="100"
-                value={quality}
-                onChange={(e) => {
-                  const newQuality = Number(e.target.value);
-                  setQuality(newQuality);
-                  if (imageSrc) {
-                    setIsCompressing(true);
-                    compressImage(imageSrc, newQuality);
-                  }
-                }}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-              />
-              
-              <div className="flex justify-between text-xs text-gray-500 mt-2">
-                <span>Smaller File</span>
-                <span>Better Quality</span>
-              </div>
-            </div>
-          )}
-
-          {/* Compression Stats */}
-          {compressedSrc && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-4 text-center border border-green-200">
-                <div className="text-2xl font-bold text-green-600 mb-1">
-                  {compressionRatio}%
+          {images.length > 0 && (
+            <>
+              {/* Quality Controls */}
+              <div className="bg-gray-50 rounded-2xl p-6 mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <label htmlFor="quality-slider" className="font-semibold text-gray-800 text-lg flex items-center gap-2">
+                    <FaChartLine className="text-blue-500" />
+                    Global Compression Quality: {quality}%
+                    {(isProcessingAll || images.some(img => img.isCompressing)) && (
+                        <FaSpinner className="animate-spin text-blue-500 text-base" />
+                    )}
+                  </label>
+                  <span className={`text-sm font-medium ${quality >= 80 ? 'text-green-600' : quality >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {quality >= 80 ? 'High Quality' : quality >= 50 ? 'Medium Quality' : 'Max Compression'}
+                  </span>
                 </div>
-                <div className="text-sm text-green-700 font-medium">
-                  Size Reduced
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-100 rounded-2xl p-4 text-center border border-blue-200">
-                <div className="text-2xl font-bold text-blue-600 mb-1">
-                  {savedSize.toFixed(1)} KB
-                </div>
-                <div className="text-sm text-blue-700 font-medium">
-                  Space Saved
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-purple-50 to-violet-100 rounded-2xl p-4 text-center border border-purple-200">
-                <div className="text-2xl font-bold text-purple-600 mb-1">
-                  {((compressedSize / originalSize) * 100).toFixed(1)}%
-                </div>
-                <div className="text-sm text-purple-700 font-medium">
-                  Final Size
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Image Previews */}
-          {(imageSrc || compressedSrc) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Original Image */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <FaImage className="text-blue-500" />
-                  <h3 className="font-semibold text-gray-800">Original Image</h3>
-                </div>
-                <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4">
-                  <img 
-                    src={imageSrc!} 
-                    alt="Original" 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div className="flex justify-between items-center text-sm text-gray-600">
-                  <span>Size: {originalSize} KB</span>
-                  <span className="text-red-500 font-medium">Original</span>
+                
+                <input
+                  id="quality-slider"
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={quality}
+                  onChange={handleQualityChange}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                />
+                
+                <div className="flex justify-between text-xs text-gray-500 mt-2">
+                  <span>Higher Compression (Smaller File)</span>
+                  <span>Lower Compression (Better Quality)</span>
                 </div>
               </div>
 
-              {/* Compressed Image */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <FaRegImages className="text-green-500" />
-                  <h3 className="font-semibold text-gray-800">Compressed Image</h3>
-                  {isCompressing && (
-                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full ml-2">
-                      Compressing...
-                    </span>
-                  )}
-                </div>
-                <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4">
-                  <img 
-                    src={compressedSrc!} 
-                    alt="Compressed" 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
-                    Size: {compressedSize} KB
-                    <span className="text-green-500 font-medium ml-2">
-                      (-{savedSize.toFixed(1)} KB)
-                    </span>
+              {/* 🆕 LIVE PREVIEW SECTION */}
+              {previewImage && (
+                <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FaEye className="text-purple-500 text-xl" />
+                    <h3 className="font-bold text-gray-800">Live Preview: {previewImage.file.name}</h3>
                   </div>
-                  <a
-                    download="compressed.jpg"
-                    href={compressedSrc!}
-                    className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold px-4 py-2 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <FaDownload />
-                    Download
-                  </a>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Original */}
+                    <div className="text-center">
+                        <p className="font-semibold text-gray-600 mb-2">Original ({previewImage.originalSize} KB)</p>
+                        <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border-4 border-dashed border-red-300">
+                            {previewImage.originalSrc ? (
+                                <img src={previewImage.originalSrc} alt="Original Preview" className="w-full h-full object-contain" />
+                            ) : <div className="p-4 text-sm text-gray-500">Loading original...</div>}
+                        </div>
+                    </div>
+                    {/* Compressed */}
+                    <div className="text-center">
+                        <p className="font-semibold text-gray-600 mb-2 flex items-center justify-center gap-2">
+                            Compressed ({previewImage.compressedSize} KB) 
+                            {previewImage.isCompressing && <FaSpinner className="animate-spin text-sm text-yellow-600" />}
+                        </p>
+                        <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border-4 border-dashed border-green-300">
+                            {previewImage.compressedSrc ? (
+                                <img src={previewImage.compressedSrc} alt="Compressed Preview" className="w-full h-full object-contain" />
+                            ) : <div className="p-4 text-sm text-gray-500">Compressing...</div>}
+                        </div>
+                        {previewImage.compressedSize > 0 && (
+                            <p className="text-sm mt-2 text-green-600 font-medium">
+                                Size Reduction: -{((previewImage.originalSize - previewImage.compressedSize) / previewImage.originalSize * 100).toFixed(1)}%
+                            </p>
+                        )}
+                    </div>
+                  </div>
                 </div>
+              )}
+              {/* 🆕 END LIVE PREVIEW SECTION */}
+
+
+              {/* Global Stats and Batch Download (Mismo que antes) */}
+              <div className="flex flex-col md:flex-row justify-between items-center bg-blue-100/50 rounded-2xl p-5 mb-8 border border-blue-200">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-center w-full md:w-auto">
+                    <div>
+                        <div className="text-xl font-bold text-gray-800">{images.length}</div>
+                        <div className="text-sm text-gray-600">Files Loaded</div>
+                    </div>
+                    <div>
+                        <div className="text-xl font-bold text-red-600">{globalStats.originalTotal} KB</div>
+                        <div className="text-sm text-gray-600">Original Total Size</div>
+                    </div>
+                    <div>
+                        <div className={`text-xl font-bold ${globalStats.ratio > '0.0' ? 'text-green-600' : 'text-gray-500'}`}>
+                            -{globalStats.ratio}%
+                        </div>
+                        <div className="text-sm text-gray-600">Total Reduction</div>
+                    </div>
+                </div>
+                
+                <button
+                    onClick={handleBatchDownload}
+                    disabled={!globalStats.allCompressed}
+                    className={`
+                        mt-4 md:mt-0 flex items-center gap-2 font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-300
+                        ${globalStats.allCompressed 
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700' 
+                            : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                        }
+                    `}
+                >
+                    <FaFileDownload />
+                    Download All ({globalStats.compressedTotal} KB ZIP)
+                </button>
               </div>
+
+              {/* Individual Image List (Mismo que antes, mejorado para consistencia) */}
+              <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <FaImage className="text-purple-500" />
+                Processing Queue
+              </h3>
+              
+              <div className="space-y-4">
+                {images.map(img => {
+                  const saved = img.originalSize - img.compressedSize;
+                  const ratio = img.originalSize > 0 ? (saved / img.originalSize) * 100 : 0;
+                  
+                  return (
+                    <div key={img.id} className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex items-center justify-between gap-4">
+                        
+                        {/* File Info */}
+                        <div className="flex items-center gap-4 min-w-0 flex-grow">
+                            <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                                {img.compressedSrc ? (
+                                    <img src={img.compressedSrc} alt={img.file.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <FaRegImages className="text-gray-400 text-2xl" />
+                                )}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="font-semibold text-gray-800 truncate" title={img.file.name}>
+                                    {img.file.name}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                    Original: {img.originalSize} KB
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Status / Stats */}
+                        <div className="flex items-center gap-6 flex-shrink-0">
+                            {img.error ? (
+                                <span className="flex items-center text-red-500 font-medium text-sm">
+                                    <FaInfoCircle className="mr-1" /> Error
+                                </span>
+                            ) : img.isCompressing ? (
+                                <span className="flex items-center text-yellow-600 font-medium text-sm">
+                                    <FaSpinner className="animate-spin mr-1" /> Compressing...
+                                </span>
+                            ) : (
+                                img.compressedSrc && (
+                                    <>
+                                        <div className="text-center">
+                                            <p className={`font-bold text-lg ${ratio > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                                                -{ratio.toFixed(1)}%
+                                            </p>
+                                            <p className="text-xs text-gray-500">Reduced</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="font-bold text-lg text-blue-600">
+                                                {img.compressedSize} KB
+                                            </p>
+                                            <p className="text-xs text-gray-500">Final</p>
+                                        </div>
+                                    </>
+                                )
+                            )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            {img.compressedSrc && (
+                                <a
+                                    download={`${img.file.name.replace(/\.[^/.]+$/, "")}_Q${quality}.jpg`}
+                                    href={img.compressedSrc}
+                                    className="p-2 text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+                                    title="Download Single Image"
+                                >
+                                    <FaDownload />
+                                </a>
+                            )}
+                            <button
+                                onClick={() => handleRemoveImage(img.id)}
+                                className="p-2 text-red-500 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+                                title="Remove Image"
+                            >
+                                <FaTrash />
+                            </button>
+                        </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Prompt to upload when the list is empty */}
+          {images.length === 0 && (
+            <div className="p-12 text-center text-gray-500 bg-gray-50 rounded-2xl border border-gray-200">
+                <FaRegImages className="text-4xl mx-auto mb-3" />
+                <p>Start by dropping or browsing image files above.</p>
             </div>
           )}
-        </div>
 
-        {/* Info Section */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-            Why Compress Images?
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <FaChartLine className="text-blue-600 text-xl" />
-              </div>
-              <h4 className="font-semibold text-gray-800 mb-2">Faster Loading</h4>
-              <p className="text-gray-600 text-sm">
-                Smaller images load faster on websites and apps
-              </p>
+          {/* Reset button (visible when images are present) */}
+          {images.length > 0 && (
+            <div className="mt-8 text-center">
+                <button
+                    onClick={() => setImages([])}
+                    className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors border border-red-300 px-4 py-2 rounded-xl"
+                >
+                    Clear All Images and Reset
+                </button>
             </div>
-            <div className="text-center p-4">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <FaCompressAlt className="text-green-600 text-xl" />
-              </div>
-              <h4 className="font-semibold text-gray-800 mb-2">Save Storage</h4>
-              <p className="text-gray-600 text-sm">
-                Reduce storage space and bandwidth usage
-              </p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <FaUpload className="text-purple-600 text-xl" />
-              </div>
-              <h4 className="font-semibold text-gray-800 mb-2">Better Performance</h4>
-              <p className="text-gray-600 text-sm">
-                Optimized images improve user experience
-              </p>
-            </div>
-          </div>
+          )}
+
         </div>
       </div>
 
       <style jsx>{`
+        .border-3 { border-width: 3px; }
         .slider::-webkit-slider-thumb {
           appearance: none;
           height: 20px;
